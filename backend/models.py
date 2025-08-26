@@ -25,9 +25,11 @@ class TemplateSection(Base):
     order_index = Column(Integer, nullable=False)
     
     # İlişkileri tanımlıyoruz
-    template_id = Column(UUID(as_uuid=True), ForeignKey("roadmap_templates.id"))
+    template_id = Column(UUID(as_uuid=True), ForeignKey("roadmap_templates.id"), nullable=False)
     template = relationship("RoadmapTemplate", back_populates="sections")
 
+    # Bir üst bölümün birden çok alt bölümü olabilir ilişkisi
+    parent = relationship("TemplateSection", remote_side=[id], back_populates="children")
+    children = relationship("TemplateSection", back_populates="parent")
     # Kendi kendine ilişki (hiyerarşi için)
-    # Şimdilik basit tutmak için bunu eklemeyelim, bir sonraki adımda ekleriz.
-    # parent_id = Column(UUID(as_uuid=True), ForeignKey("template_sections.id"))
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("template_sections.id"), nullable=True) # nullable=True kök başlıklar için
