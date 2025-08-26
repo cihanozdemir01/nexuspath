@@ -105,3 +105,30 @@ def delete_template_section(db: Session, section_id: uuid.UUID):
     db.delete(db_section)
     db.commit()
     return db_section
+
+def get_user_entry_for_section(db: Session, section_id: uuid.UUID):
+    """
+    Belirli bir bölüme ait kullanıcı içeriğini getirir.
+    """
+    return db.query(models.UserEntry).filter(models.UserEntry.section_id == section_id).first()
+
+def create_or_update_user_entry(db: Session, section_id: uuid.UUID, entry: schemas.UserEntryCreate):
+    """
+    Bir bölüm için kullanıcı içeriği oluşturur veya mevcutsa günceller (Upsert).
+    """
+    db_entry = get_user_entry_for_section(db, section_id=section_id)
+
+    if db_entry:
+        # Varsa: içeriğini güncelle
+        db_entry.content = entry.content
+    else:
+        # Yoksa: yeni bir tane oluştur
+        db_entry = models.UserEntry(
+            content=entry.content,
+            section_id=section_id
+        )
+        db.add(db_entry)
+    
+    db.commit()
+    db.refresh(db_entry)
+    return db_entry

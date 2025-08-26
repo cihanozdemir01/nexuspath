@@ -1,6 +1,8 @@
 import uuid
 from pydantic import BaseModel
 from typing import Optional
+import datetime
+from typing import Any, Dict
 
 # --- Roadmap Template Şemaları ---
 
@@ -59,3 +61,21 @@ class TemplateSection(TemplateSectionBase):
         
 # Pydantic v2'de recursive modeller için bu gerekli değil, ama v1 için önemli
 TemplateSection.update_forward_refs()
+
+class UserEntryBase(BaseModel):
+    # İçerik, herhangi bir geçerli JSON yapısı olabilir (sözlük)
+    content: Optional[Dict[str, Any]] = None
+
+class UserEntryCreate(UserEntryBase):
+    pass
+
+class UserEntry(UserEntryBase):
+    id: uuid.UUID
+    section_id: uuid.UUID
+    created_at: datetime.datetime
+    updated_at: Optional[datetime.datetime] = None
+
+    class Config:
+        # Pydantic v2 için bu 'from_attributes = True' olmalı,
+        # ama şimdilik 'orm_mode' da çalışır.
+        orm_mode = True

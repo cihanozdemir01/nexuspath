@@ -3,6 +3,7 @@ from sqlalchemy import Boolean, Column, String, Text, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID # UUID tipini doğrudan kullanacağız
 from .database import Base # Az önce oluşturduğumuz Base sınıfını import ediyoruz
+from sqlalchemy import DateTime, JSON, func
 
 class RoadmapTemplate(Base):
     __tablename__ = "roadmap_templates"
@@ -33,3 +34,17 @@ class TemplateSection(Base):
     children = relationship("TemplateSection", back_populates="parent")
     # Kendi kendine ilişki (hiyerarşi için)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("template_sections.id"), nullable=True) # nullable=True kök başlıklar için
+
+    entry = relationship("UserEntry", back_populates="section", uselist=False, cascade="all, delete-orphan")
+class UserEntry(Base):
+    __tablename__ = "user_entries"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    content = Column(JSON, nullable=True) 
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    section_id = Column(UUID(as_uuid=True), ForeignKey("template_sections.id"), unique=True, nullable=False)
+    section = relationship("TemplateSection", back_populates="entry")
