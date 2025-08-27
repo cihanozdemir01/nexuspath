@@ -15,8 +15,7 @@ class RoadmapTemplate(Base):
     is_active = Column(Boolean, default=True)
 
     # İlişkiyi tanımlıyoruz: Bir şablonun birden çok bölümü olabilir.
-    sections = relationship("TemplateSection", back_populates="template")
-
+    sections = relationship("TemplateSection", back_populates="template", cascade="all, delete-orphan")
 class TemplateSection(Base):
     __tablename__ = "template_sections"
 

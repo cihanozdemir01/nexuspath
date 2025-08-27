@@ -92,7 +92,7 @@ def delete_template(template_id: uuid.UUID, db: Session = Depends(get_db)):
 def update_entry_for_section(
     section_id: uuid.UUID, entry: schemas.UserEntryCreate, db: Session = Depends(get_db)
 ):
-    return crud.create_or_update_user_entry(db=db, section_id=section_id, entry=entry)
+    return crud.create_or_update_user_entry(db=db, section_id=section_id, entry_data=entry)
 
 @app.get("/sections/{section_id}/entry", response_model=schemas.UserEntry)
 def read_entry_for_section(section_id: uuid.UUID, db: Session = Depends(get_db)):
