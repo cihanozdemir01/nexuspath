@@ -1,10 +1,10 @@
 // Dosya Yolu: frontend/src/App.tsx
 
 import { useState, useEffect, useCallback } from 'react';
-import './App.css';
 import EditorComponent from './components/editor';
+import './App.css'; 
 
-// --- VERİ MODELLERİ ---
+// --- Tipleri (Interfaces) Tanımlayalım ---
 interface Template {
   id: string;
   name: string;
@@ -22,20 +22,21 @@ interface UserEntry {
 }
 
 function App() {
-  // --- DURUM DEĞİŞKENLERİ ---
+  // --- State Değişkenleri ---
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [entry, setEntry] = useState<UserEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingEntry, setIsLoadingEntry] = useState(false); // Yükleniyor durumu için state
 
-  // --- VERİ ÇEKME İŞLEMLERİ ---
+  // --- Veri Çekme Effect'leri ---
   useEffect(() => {
     fetch('http://localhost:8000/templates/')
       .then(res => res.json())
-      .then(setTemplates)
-      .catch(error => console.error("Şablonlar çekilirken hata:", error));
+      .then(data => setTemplates(data))
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -43,8 +44,8 @@ function App() {
       setSelectedSection(null);
       fetch(`http://localhost:8000/templates/${selectedTemplate.id}/sections/`)
         .then(res => res.json())
-        .then(setSections)
-        .catch(error => console.error("Başlıklar çekilirken hata:", error));
+        .then(data => setSections(data))
+        .catch(console.error);
     } else {
       setSections([]);
     }
@@ -52,21 +53,27 @@ function App() {
 
   useEffect(() => {
     if (selectedSection) {
+      setIsLoadingEntry(true); // Veri çekmeye başlarken yükleniyor...
       fetch(`http://localhost:8000/sections/${selectedSection.id}/entry`)
-        .then(res => res.status === 404 ? null : res.json())
-        .then(setEntry)
-        .catch(error => console.error("İçerik çekilirken hata:", error));
+        .then(res => (res.status === 404 ? null : res.json()))
+        .then(data => {
+          setEntry(data);
+          setIsLoadingEntry(false); // Veri çekme bitince yükleniyor durumunu kaldır
+        })
+        .catch(error => {
+          console.error(error);
+          setIsLoadingEntry(false);
+        });
     } else {
       setEntry(null);
     }
   }, [selectedSection]);
 
-  // --- OTOMATİK KAYDETME ---
+  // --- Otomatik Kaydetme Fonksiyonu ---
   const handleContentChange = useCallback((newData: any) => {
     if (!selectedSection) return;
     setIsSaving(true);
     const updatedEntry = { content: newData };
-
     fetch(`http://localhost:8000/sections/${selectedSection.id}/entry`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -74,37 +81,73 @@ function App() {
     })
     .then(response => response.json())
     .then(savedData => {
-      setEntry(savedData);
+      if (JSON.stringify(entry?.content) !== JSON.stringify(savedData.content)) {
+        setEntry(savedData);
+      }
       setIsSaving(false);
     })
     .catch(error => {
-      console.error("Kaydederken hata:", error);
       setIsSaving(false);
+      console.error("Kaydederken hata:", error);
     });
-  }, [selectedSection]);
+  }, [selectedSection, entry]);
 
   // --- RENDER MANTIĞI ---
+
+  // 1. Durum: Şablon seçilmemiş
   if (!selectedTemplate) {
-    return <div className="container"><h1>Yol Haritası Şablonları</h1><ul className="list">{templates.map(t => <li key={t.id} onClick={() => setSelectedTemplate(t)}>{t.name}</li>)}</ul></div>;
+    return (
+      <div className="container">
+        <h1>Yol Haritası Şablonları</h1>
+        <ul className="list">
+          {templates.map(template => (
+            <li key={template.id} onClick={() => setSelectedTemplate(template)}>
+              {template.name}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
   }
 
+  // 2. Durum: Başlık seçilmemiş
   if (!selectedSection) {
-    return <div className="container"><button onClick={() => setSelectedTemplate(null)}>← Geri</button><h1>{selectedTemplate.name}</h1><p>{selectedTemplate.description}</p><hr /><h2>Başlıklar</h2><ul className="list">{sections.map(s => <li key={s.id} onClick={() => setSelectedSection(s)}>{s.title}</li>)}</ul></div>;
+    return (
+      <div className="container">
+        <button onClick={() => setSelectedTemplate(null)}>← Geri</button>
+        <h1>{selectedTemplate.name}</h1>
+        <p>{selectedTemplate.description || ''}</p>
+        <hr />
+        <h2>Başlıklar</h2>
+        <ul className="list">
+          {sections.map(section => (
+            <li key={section.id} onClick={() => setSelectedSection(section)}>
+              {section.title}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
   }
-  
+
+  // 3. Durum: Editör ekranı
   return (
     <div className="container">
       <button onClick={() => setSelectedSection(null)}>← Başlıklara Geri Dön</button>
       <h1>{selectedSection.title}</h1>
-      <p><i>{selectedSection.prompt}</i></p>
+      <p><i>{selectedSection.prompt || ''}</i></p>
       <div className="saving-status">{isSaving ? 'Kaydediliyor...' : 'Kaydedildi'}</div>
       <hr />
       <div className="content-area">
-        <EditorComponent
-          holder="editorjs-container"
-          data={entry?.content}
-          onChange={handleContentChange}
-        />
+        {isLoadingEntry ? (
+          <p>İçerik yükleniyor...</p>
+        ) : (
+          <EditorComponent
+            key={selectedSection.id}
+            data={entry?.content || {}}
+            onChange={handleContentChange}
+          />
+        )}
       </div>
     </div>
   );

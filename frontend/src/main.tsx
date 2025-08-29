@@ -1,10 +1,8 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.tsx' // Dosya adının '.tsx' ile bittiğinden emin ol
+// import './index.css' // Bu satırı silebilirsin
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <App />
 )
