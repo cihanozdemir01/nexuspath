@@ -9,10 +9,18 @@ import {
   Button, Divider, Paper, Box, CircularProgress
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'; // Geri ikonu
+import SectionItem from './components/SectionItem'; 
 
 // --- Tipler (Interfaces) ---
 interface Template { id: string; name: string; description: string | null; }
-interface Section { id: string; title: string; prompt: string | null; order_index: number; }
+interface Section {
+  id: string;
+  title: string;
+  prompt: string | null;
+  order_index: number;
+  parent_id: string | null; // parent_id'yi de eklemek iyi bir pratik
+  children?: Section[]; // children alanı Section dizisidir ve isteğe bağlıdır
+}
 interface UserEntry { id: string; content: any; }
 
 function App() {
@@ -24,7 +32,22 @@ function App() {
   const [entry, setEntry] = useState<UserEntry | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingEntry, setIsLoadingEntry] = useState(false);
+  const buildSectionTree = (sectionsList: any[]): any[] => {
+    const sectionsMap = new Map(sectionsList.map(s => [s.id, { ...s, children: [] }]));
+    const tree: any[] = [];
 
+    sectionsList.forEach(section => {
+      if (section.parent_id && sectionsMap.has(section.parent_id)) {
+        const parent = sectionsMap.get(section.parent_id);
+        if (parent) {
+          parent.children.push(sectionsMap.get(section.id)!);
+        }
+      } else {
+        tree.push(sectionsMap.get(section.id)!);
+      }
+    });
+    return tree;
+  };
     // --- Veri Çekme Effect'leri (DOLDURULMUŞ) ---
     useEffect(() => {
       fetch('http://localhost:8000/templates/')
@@ -112,6 +135,9 @@ function App() {
 
   // 2. Durum: Başlık seçilmemiş
   if (!selectedSection) {
+     // Hiyerarşik veriyi oluştur
+    const sectionTree = buildSectionTree(sections);
+    
     return (
       <Container maxWidth="md" sx={{ mt: 4 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => setSelectedTemplate(null)}>
@@ -129,12 +155,12 @@ function App() {
         </Typography>
         <Paper elevation={2}>
           <List>
-            {sections.map((section, index) => (
-              <ListItem key={section.id} disablePadding divider={index < sections.length - 1}>
-                <ListItemButton onClick={() => setSelectedSection(section)}>
-                  <ListItemText primary={section.title} />
-                </ListItemButton>
-              </ListItem>
+            {sectionTree.map((rootSection) => (
+              <SectionItem
+                key={rootSection.id}
+                section={rootSection}
+                onSectionClick={(section) => setSelectedSection(section)}
+              />
             ))}
           </List>
         </Paper>
