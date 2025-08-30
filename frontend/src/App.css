@@ -1,0 +1,18 @@
+/* Dosya Yolu: frontend/src/App.css */
+
+/*
+  Bu kural, Editor.js'in içindeki yazılabilir alanın alt boşluğunu artırır.
+  Bu sayede, uzun metinler yazdığınızda son satır,
+  Paper bileşeninin en altına yapışmaz ve daha iyi bir yazma deneyimi sunar.
+*/
+.codex-editor__redactor {
+    padding-bottom: 100px !important;
+}
+
+/*
+  Bu kural, Raw HTML aracıyla eklenen iframe'lerin (Spotify, vb.)
+  varsayılan olarak ebeveyn div'in tüm genişliğini kaplamasını sağlar.
+*/
+.ce-rawtool iframe {
+    width: 100%;
+}
