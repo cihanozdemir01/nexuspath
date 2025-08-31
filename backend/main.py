@@ -1,3 +1,5 @@
+
+
 import uuid
 from typing import List
 
@@ -8,6 +10,10 @@ from sqlalchemy.orm import Session
 from . import crud, models, schemas
 from .database import SessionLocal, engine
 
+from sqladmin import Admin, ModelView
+from . import models 
+
+
 # Veritabanı tablolarını oluştur
 models.Base.metadata.create_all(bind=engine)
 
@@ -17,6 +23,26 @@ app = FastAPI(
     description="NexusPath uygulaması için backend API hizmetleri.",
     version="0.1.0",
 )
+
+# 1. Bir Admin instance'ı oluşturuyoruz ve onu FastAPI uygulamamıza ve veritabanı motorumuza bağlıyoruz.
+admin = Admin(app=app, engine=engine)
+
+# 2. Hangi veritabanı modellerini yönetmek istediğimizi belirten "View" sınıfları oluşturuyoruz.
+class RoadmapTemplateAdmin(ModelView, model=models.RoadmapTemplate):
+    column_list = [models.RoadmapTemplate.id, models.RoadmapTemplate.name, models.RoadmapTemplate.is_active]
+    name = "Şablon"
+    name_plural = "Şablonlar"
+    icon = "fa-solid fa-map" # FontAwesome ikon sınıfı
+
+class TemplateSectionAdmin(ModelView, model=models.TemplateSection):
+    column_list = [models.TemplateSection.id, models.TemplateSection.title, models.TemplateSection.order_index]
+    name = "Başlık"
+    name_plural = "Başlıklar"
+    icon = "fa-solid fa-list-ol"
+
+# 3. Oluşturduğumuz bu "View"ları admin panelimize kaydediyoruz.
+admin.add_view(RoadmapTemplateAdmin)
+admin.add_view(TemplateSectionAdmin)
 
 # CORS (Cross-Origin Resource Sharing) ayarları
 origins = [
@@ -118,3 +144,20 @@ def delete_section(section_id: uuid.UUID, db: Session = Depends(get_db)):
     if deleted_section is None:
         raise HTTPException(status_code=404, detail="Section not found")
     return deleted_section
+
+@app.patch("/entries/{entry_id}/favorite", response_model=schemas.UserEntry)
+def update_entry_favorite(entry_id: uuid.UUID, entry_update: schemas.UserEntryUpdate, db: Session = Depends(get_db)):
+    """
+    Bir içeriğin favori durumunu günceller.
+    """
+    updated_entry = crud.update_user_entry_favorite_status(db, entry_id=entry_id, is_favorite=entry_update.is_favorite)
+    if updated_entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return updated_entry
+
+@app.get("/entries/favorites/", response_model=List[schemas.FavoriteEntry])
+def read_favorite_entries(db: Session = Depends(get_db)):
+    """
+    Favori olarak işaretlenmiş tüm kullanıcı içeriklerini listeler.
+    """
+    return crud.get_favorite_user_entries(db=db)

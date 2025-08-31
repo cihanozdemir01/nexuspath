@@ -98,3 +98,35 @@ def create_or_update_user_entry(db: Session, section_id: uuid.UUID, entry_data: 
     db.commit()
     db.refresh(db_entry)
     return db_entry
+
+def update_user_entry_favorite_status(db: Session, entry_id: uuid.UUID, is_favorite: bool):
+    db_entry = db.query(models.UserEntry).filter(models.UserEntry.id == entry_id).first()
+    if not db_entry:
+        return None
+    
+    db_entry.is_favorite = is_favorite
+    db.commit()
+    db.refresh(db_entry)
+    return db_entry
+
+def get_favorite_user_entries(db: Session):
+    # Bu sorgu, UserEntry ve ilişkili olduğu TemplateSection'ı birleştirir (join).
+    # Bu sayede hem içeriğin favori durumunu hem de ait olduğu başlığın adını alabiliriz.
+    results = db.query(
+        models.UserEntry,
+        models.TemplateSection.title
+    ).join(
+        models.TemplateSection, models.UserEntry.section_id == models.TemplateSection.id
+    ).filter(
+        models.UserEntry.is_favorite == True
+    ).all()
+    
+    # Sorgu sonucunu Pydantic modelimize uygun hale getiriyoruz.
+    favorites = []
+    for entry, section_title in results:
+        fav = schemas.FavoriteEntry(
+            **entry.__dict__,
+            section_title=section_title
+        )
+        favorites.append(fav)
+    return favorites

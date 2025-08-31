@@ -79,3 +79,21 @@ class UserEntry(UserEntryBase):
         # Pydantic v2 için bu 'from_attributes = True' olmalı,
         # ama şimdilik 'orm_mode' da çalışır.
         orm_mode = True
+
+# YENİ ŞEMA: Bir içeriği güncellemek (sadece favori durumunu) için
+class UserEntryUpdate(BaseModel):
+    is_favorite: bool
+
+class UserEntry(UserEntryBase):
+    id: uuid.UUID
+    section_id: uuid.UUID
+    is_favorite: bool # <-- YENİ SATIR
+    created_at: datetime.datetime
+    updated_at: Optional[datetime.datetime] = None
+
+    class Config:
+        orm_mode = True
+
+# YENİ ŞEMA: Favorileri listelerken başlık bilgisini de göndermek için
+class FavoriteEntry(UserEntry):
+    section_title: str # Hangi başlığa ait olduğunu göstermek için
